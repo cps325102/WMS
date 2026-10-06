@@ -1,0 +1,12 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: wms
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
+wms:
+  # 默认使用本地 H2 文件库 ./data/wms，答辩演示无需额外安装数据库。
+  # 如需切换 MySQL：设置环境变量 WMS_DB=mysql，并按需设置 WMS_MYSQL_URL/WMS_MYSQL_USER/WMS_MYSQL_PASSWORD。
+  db: ${WMS_DB:h2}

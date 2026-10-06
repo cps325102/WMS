@@ -1,0 +1,25 @@
+# ---- 后端（Maven）----
+backend/target/
+*.class
+
+# ---- 前端（Vite）----
+frontend/node_modules/
+frontend/dist/
+
+# ---- 本地运行时数据（H2 文件库）----
+backend/data/
+*.mv.db
+*.trace.db
+
+# ---- 日志 ----
+*.log
+
+# ---- IDE ----
+.idea/
+*.iml
+.vscode/
+out/
+
+# ---- 系统 ----
+.DS_Store
+Thumbs.db
