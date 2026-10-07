@@ -2,6 +2,7 @@ package com.example.wms.service;
 
 import com.example.wms.storage.DataStorage;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,6 +15,7 @@ public class KanbanService {
         this.storage = storage;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public List<Map<String, Object>> generateKanban(Long orderId) {
         Map<String, Object> order = storage.findOrderById(orderId);
         if (order == null) throw new RuntimeException("入库单不存在");
@@ -114,12 +116,13 @@ public class KanbanService {
         if (status != null && !status.isBlank()) {
             list = list.stream().filter(k -> status.equals(k.get("status"))).collect(Collectors.toList());
         }
-        list.sort((a, b) -> {
-            String ta = (String) a.getOrDefault("createTime", "");
-            String tb = (String) b.getOrDefault("createTime", "");
-            return tb.compareTo(ta);
-        });
+        // createTime 来自 DATETIME 列，取到的是 Timestamp，统一转字符串再比较
+        list.sort((a, b) -> str(b.get("createTime")).compareTo(str(a.get("createTime"))));
         return list;
+    }
+
+    private String str(Object v) {
+        return v == null ? "" : v.toString();
     }
 
     private boolean contains(Object val, String keyword) {

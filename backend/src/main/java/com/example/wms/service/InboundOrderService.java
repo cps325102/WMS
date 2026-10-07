@@ -2,6 +2,7 @@ package com.example.wms.service;
 
 import com.example.wms.storage.DataStorage;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -16,6 +17,8 @@ public class InboundOrderService {
         this.storage = storage;
     }
 
+    /** 单据表头与明细必须一起写入，避免出现没有明细的空单。 */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> createOrder(Map<String, Object> body) {
         Map<String, Object> order = new LinkedHashMap<>();
         order.put("orderNo", generateNo("RK"));
@@ -80,6 +83,8 @@ public class InboundOrderService {
         return v == null ? "" : v.toString();
     }
 
+    /** 改单会先删明明细再看板，删除与重建必须在同一事务内，否则中途失败会丢明细。 */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> updateOrder(Long orderId, Map<String, Object> body) {
         Map<String, Object> order = storage.findOrderById(orderId);
         if (order == null) throw new RuntimeException("入库单不存在");
@@ -111,8 +116,8 @@ public class InboundOrderService {
         if (keyword != null && !keyword.isBlank()) {
             String lower = keyword.toLowerCase();
             orders = orders.stream().filter(o ->
-                    o.get("orderNo").toString().toLowerCase().contains(lower) ||
-                            o.get("supplierName").toString().toLowerCase().contains(lower)
+                    safeGet(o, "orderNo").toLowerCase().contains(lower) ||
+                            safeGet(o, "supplierName").toLowerCase().contains(lower)
             ).collect(Collectors.toList());
         }
         if (status != null && !status.isBlank()) {
@@ -138,6 +143,7 @@ public class InboundOrderService {
         return order;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void deleteOrder(Long orderId) {
         Map<String, Object> order = storage.findOrderById(orderId);
         if (order == null) return;
@@ -161,6 +167,8 @@ public class InboundOrderService {
     }
 
     // ==================== 反审核（可追溯、可反审核） ====================
+    /** 反审核要冲回库存、补流水、回退明细与单据状态，必须整体成功或整体失败。 */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> reverseAudit(Long orderId, String reason, String operator) {
         Map<String, Object> order = storage.findOrderById(orderId);
         if (order == null) throw new RuntimeException("入库单不存在");
@@ -178,7 +186,13 @@ public class InboundOrderService {
             Map<String, Object> inventory = storage.findInventoryByKey(materialId, warehouseId, locationId, batchNo);
             if (inventory == null) continue;
             BigDecimal currentQty = toBigDecimal(inventory.get("qty"));
+            BigDecimal frozenQty = toBigDecimal(inventory.get("frozenQty"));
             BigDecimal newQty = currentQty.subtract(receivedQty).max(BigDecimal.ZERO);
+            if (newQty.compareTo(frozenQty) < 0) {
+                throw new RuntimeException("物料[" + item.get("materialName") + "]批次[" + batchNo
+                        + "]库存中已有 " + frozenQty.stripTrailingZeros().toPlainString()
+                        + " 处于封存状态，扣回后会低于封存量，请先解封再反审核");
+            }
             inventory.put("qty", newQty);
             storage.saveInventory(inventory);
             Map<String, Object> record = new LinkedHashMap<>();

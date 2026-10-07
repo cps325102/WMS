@@ -2,6 +2,7 @@ package com.example.wms.service;
 
 import com.example.wms.storage.DataStorage;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -11,6 +12,7 @@ public class FreezeService {
     private final DataStorage storage;
     public FreezeService(DataStorage storage) { this.storage = storage; }
 
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> freeze(Map<String, Object> body) {
         Long inventoryId = toLong(body.get("inventoryId"));
         BigDecimal freezeQty = toBigDecimal(body.get("freezeQty"));
@@ -97,6 +99,7 @@ public class FreezeService {
         return r;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> unfreeze(Long freezeId, BigDecimal unfreezeQty, String reason, String operator) {
         Map<String, Object> freeze = storage.findFreezeRecordById(freezeId);
         if (freeze == null) throw new RuntimeException("封存记录不存在");
@@ -156,6 +159,7 @@ public class FreezeService {
                 || safeToString(r.get("toBatchNo")).toLowerCase().contains(lower)).collect(Collectors.toList());
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> repack(Map<String, Object> body) {
         Long inventoryId = toLong(body.get("inventoryId"));
         BigDecimal repackQty = toBigDecimal(body.get("repackQty"));

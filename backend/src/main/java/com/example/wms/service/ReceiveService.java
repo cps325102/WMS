@@ -2,6 +2,7 @@ package com.example.wms.service;
 
 import com.example.wms.storage.DataStorage;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -15,6 +16,11 @@ public class ReceiveService {
         this.storage = storage;
     }
 
+    /**
+     * 扫码入库：一次写入看板、明细、单据状态、库存、流水五处，
+     * 任一步失败必须整体回滚，否则会出现「库存加了但流水没记」这类不一致。
+     */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> receive(Map<String, Object> body) {
         String kanbanCode = (String) body.get("kanbanCode");
         BigDecimal receiveQty = new BigDecimal(body.get("receiveQty").toString());
@@ -57,6 +63,9 @@ public class ReceiveService {
         Long warehouseId = (Long) kanban.get("warehouseId");
         Long locationId = (Long) kanban.get("locationId");
         String batchNo = (String) kanban.get("batchNo");
+        if (materialId == null || warehouseId == null || locationId == null) {
+            throw new RuntimeException("看板缺少物料/仓库/库位信息，无法入库，请检查入库单明细");
+        }
         Map<String, Object> inventory = storage.findInventoryByKey(materialId, warehouseId, locationId, batchNo);
         if (inventory == null) {
             inventory = new LinkedHashMap<>();

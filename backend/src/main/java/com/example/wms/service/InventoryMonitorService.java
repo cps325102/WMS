@@ -2,6 +2,7 @@ package com.example.wms.service;
 
 import com.example.wms.storage.DataStorage;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -58,6 +59,7 @@ public class InventoryMonitorService {
         return new ArrayList<>(summary.values());
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public List<Map<String, Object>> checkAlerts() {
         List<Map<String, Object>> generated = new ArrayList<>();
         Map<Long, Map<String, Object>> configByMaterial = storage.findAllAlertConfigs().stream()
@@ -113,6 +115,7 @@ public class InventoryMonitorService {
         return logs;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> handleAlert(Long id, String handler, String action, String remark) {
         Map<String, Object> log = storage.findAlertLogById(id);
         if (log == null) throw new RuntimeException("预警记录不存在");

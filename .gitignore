@@ -6,7 +6,8 @@ backend/target/
 frontend/node_modules/
 frontend/dist/
 
-# ---- 本地运行时数据（H2 文件库）----
+# ---- 本地运行时数据 ----
+# 已改用 MySQL；保留旧 H2 文件的忽略规则，避免历史库文件被误提交
 backend/data/
 *.mv.db
 *.trace.db

@@ -4,6 +4,7 @@ import com.example.wms.storage.DataStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,6 +23,7 @@ public class OutboundService {
 
     // ==================== 出库单 CRUD ====================
 
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> createOutboundOrder(Map<String, Object> body) {
         Map<String, Object> order = new LinkedHashMap<>();
         order.put("orderNo", generateNo("CK"));
@@ -60,6 +62,7 @@ public class OutboundService {
         storage.saveOutboundItem(item);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> updateOutboundOrder(Long orderId, Map<String, Object> body) {
         Map<String, Object> order = storage.findOutboundOrderById(orderId);
         if (order == null) throw new RuntimeException("出库单不存在");
@@ -113,6 +116,7 @@ public class OutboundService {
         return order;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public void deleteOutboundOrder(Long orderId) {
         Map<String, Object> order = storage.findOutboundOrderById(orderId);
         if (order == null) return;
@@ -125,7 +129,11 @@ public class OutboundService {
 
     // ==================== 执行出库（先进先出） ====================
 
-    // 注意：移除了 @Transactional 注解
+    /**
+     * 先进先出执行出库：扣减多条库存、更新明细、写流水、回写看板状态，
+     * 中间任何一步抛错都必须整体回滚，否则会扣了库存却没有出库记录。
+     */
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> executeOutbound(Long orderId) {
         Map<String, Object> order = storage.findOutboundOrderById(orderId);
         if (order == null) throw new RuntimeException("出库单不存在");
@@ -313,6 +321,7 @@ public class OutboundService {
 
 
     // ==================== 反审核 ====================
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> reverseAudit(Long orderId, String reason, String operator) {
         Map<String, Object> order = storage.findOutboundOrderById(orderId);
         if (order == null) throw new RuntimeException("出库单不存在");
@@ -435,6 +444,7 @@ public class OutboundService {
     }
 
     // ==================== 扫码出库 ====================
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> shipOutbound(Map<String, Object> body) {
         String kanbanCode = (String) body.get("kanbanCode");
         BigDecimal shipQty = new BigDecimal(body.get("shipQty").toString());

@@ -2,6 +2,7 @@ package com.example.wms.service;
 
 import com.example.wms.storage.DataStorage;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,6 +26,7 @@ public class PdaService {
         return storage.findKanbanByCode(kanbanCode);
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Map<String, Object> receive(String kanbanCode, BigDecimal qty, String operator, String batchNo) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("kanbanCode", kanbanCode);
@@ -58,6 +60,9 @@ public class PdaService {
         Long materialId = toLong(kanban.get("materialId"));
         Long warehouseId = toLong(kanban.get("warehouseId"));
         Long locationId = toLong(kanban.get("locationId"));
+        if (materialId == null || warehouseId == null || locationId == null) {
+            throw new RuntimeException("看板缺少物料/仓库/库位信息，无法入库");
+        }
         String batch = batchNo != null ? batchNo : safeToString(kanban.get("batchNo"));
         Map<String, Object> inv = storage.findInventoryByKey(materialId, warehouseId, locationId, batch);
         if (inv == null) {

@@ -1,6 +1,7 @@
 package com.example.wms.service;
 
 import com.example.wms.storage.DataStorage;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +22,11 @@ public class BasicDataService {
         return storage.saveMaterial(row);
     }
     public void deleteMaterial(Long id) {
-        storage.deleteMaterial(id);
+        try {
+            storage.deleteMaterial(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("该物料已被入库单、出库单或库存引用，不能删除");
+        }
     }
 
     public List<Map<String, Object>> listSuppliers(String keyword) {
@@ -31,7 +36,11 @@ public class BasicDataService {
         return storage.saveSupplier(row);
     }
     public void deleteSupplier(Long id) {
-        storage.deleteSupplier(id);
+        try {
+            storage.deleteSupplier(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("该供应商仍被物料或入库单引用，不能删除");
+        }
     }
 
     public List<Map<String, Object>> listCustomers(String keyword) {
@@ -41,7 +50,11 @@ public class BasicDataService {
         return storage.saveCustomer(row);
     }
     public void deleteCustomer(Long id) {
-        storage.deleteCustomer(id);
+        try {
+            storage.deleteCustomer(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("该客户仍被出库单引用，不能删除");
+        }
     }
 
     public List<Map<String, Object>> listWarehouses(String keyword) {
@@ -51,7 +64,11 @@ public class BasicDataService {
         return storage.saveWarehouse(row);
     }
     public void deleteWarehouse(Long id) {
-        storage.deleteWarehouse(id);
+        try {
+            storage.deleteWarehouse(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("该仓库下仍有库存，不能删除；请先清空库存或改由库位层面处理");
+        }
     }
 
     public List<Map<String, Object>> listLocations(String keyword) {
@@ -61,7 +78,11 @@ public class BasicDataService {
         return storage.saveLocation(row);
     }
     public void deleteLocation(Long id) {
-        storage.deleteLocation(id);
+        try {
+            storage.deleteLocation(id);
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("该库位上仍有库存，不能删除");
+        }
     }
 
     private List<Map<String, Object>> filter(List<Map<String, Object>> list, String keyword) {

@@ -32,11 +32,6 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
@@ -51,6 +46,8 @@
                     <include>**/*.yml</include>
                     <include>**/*.yaml</include>
                     <include>**/*.xml</include>
+                    <!-- schema.sql / data.sql 需要随 jar 打包，否则启动时找不到建表脚本 -->
+                    <include>**/*.sql</include>
                 </includes>
             </resource>
         </resources>
